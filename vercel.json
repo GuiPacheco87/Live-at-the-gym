@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "outputDirectory": "dist",
+  "functions": {"api/gyms.py": {"includeFiles": "data/gyms.db"}},
+  "headers": [{"source": "/data.json", "headers": [{"key": "Cache-Control", "value": "public, max-age=300, must-revalidate"}]}]
+}

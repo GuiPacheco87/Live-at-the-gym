@@ -1,0 +1,13 @@
+.vercel/
+__pycache__/
+*.pyc
+data/osm.json
+data/kaggle.csv
+data/kaggle.zip
+data/spark_profiles.json
+data/*.next.db
+data/boundaries.json
+data/municipalities.json
+.runtime/
+.env*
+!.env.example
