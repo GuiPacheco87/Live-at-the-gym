@@ -34,6 +34,13 @@ def aggregate_csv(path):
 def main():
     raw = json.loads((ROOT/'data/osm.json').read_text(encoding='utf-8'))
     find_city = locator()
+    neighborhoods = json.loads((ROOT/'data/neighborhoods.json').read_text(encoding='utf-8'))
+    municipalities = json.loads((ROOT/'data/municipalities.json').read_text(encoding='utf-8'))
+    cities=[]
+    for m in municipalities:
+        region=m.get('microrregiao')
+        uf=region['mesorregiao']['UF'] if region else m['regiao-imediata']['regiao-intermediaria']['UF']
+        cities.append({'id':str(m['id']),'name':m['nome'],'state':uf['sigla']})
     gyms = []
     for element in raw['elements']:
         tags = element.get('tags', {})
@@ -45,6 +52,11 @@ def main():
         city, state = find_city(gym['longitude'], gym['latitude'])
         if city:
             gym['city'],gym['state'] = city,state
+        official=neighborhoods['located'].get(gym['id'])
+        gym['neighborhood_source']='OpenStreetMap' if gym['neighborhood'] else ''
+        if official and not gym['neighborhood']:
+            gym['neighborhood']=official['neighborhood']
+            gym['neighborhood_source']='IBGE Censo 2022 · localização geográfica'
         gym['search_text'] = normalize(' '.join(str(v) for v in gym.values()))
         gyms.append(gym)
     profiles, period = aggregate_csv(ROOT/'data/kaggle.csv')
@@ -72,11 +84,13 @@ def main():
         db.executescript((ROOT/'sql/schema.sql').read_text())
         db.executemany('INSERT INTO gyms VALUES (:id,:name,:city,:state,:neighborhood,:address,:latitude,:longitude,:opening_hours,:search_text)', gyms)
         db.executemany('INSERT INTO profiles VALUES (:weekday,:hour,:score,:samples)', profiles)
+        db.executemany('INSERT INTO cities VALUES (:id,:name,:state)',cities)
+        db.executemany('INSERT INTO neighborhoods VALUES (:id,:name,:city,:city_id,:state)',neighborhoods['neighborhoods'])
         db.executemany('INSERT INTO benefits VALUES (:gym_id,:provider,:status,:source_url,:checked_at)', [b for g in gyms for b in g['benefits'].values()])
         db.executemany('INSERT INTO metadata VALUES (?,?)', [(key,json.dumps(value,ensure_ascii=False)) for key,value in meta.items()])
     db.close()
     temp.replace(ROOT/'data/gyms.db')
-    (ROOT/'dist/data.json').write_text(json.dumps(dict(gyms=gyms,profiles=profiles,meta=meta), ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    (ROOT/'dist/data.json').write_text(json.dumps(dict(gyms=gyms,profiles=profiles,meta=meta,cities=cities,neighborhoods=neighborhoods['neighborhoods']), ensure_ascii=False,separators=(',',':')),encoding='utf-8')
     print(f'Built {len(gyms)} gyms / {len(profiles)} hourly buckets')
 
 if __name__ == '__main__':

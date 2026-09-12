@@ -26,6 +26,8 @@ jobs:
         run: python pipeline/fetch_sources.py
       - name: Completar localização com IBGE
         run: python pipeline/geography.py
+      - name: Importar bairros brasileiros e completar endereços
+        run: python pipeline/neighborhoods.py
       - name: Calcular perfis usando Spark SQL
         run: python pipeline/spark_job.py
       - name: Revalidar convênios cadastrados
@@ -38,7 +40,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/gyms.db data/kaggle_meta.json data/benefits.json dist/data.json
+          git add data/gyms.db data/kaggle_meta.json data/benefits.json data/neighborhoods.json dist/data.json
           git diff --cached --quiet || git commit -m "Atualiza cadastro e estimativas"
           git push
       - name: Publicar atualização na Vercel

@@ -11,6 +11,8 @@ CREATE TABLE profiles (
  samples INTEGER NOT NULL, PRIMARY KEY(weekday,hour)
 );
 CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE cities (id TEXT PRIMARY KEY, name TEXT NOT NULL, state TEXT NOT NULL);
+CREATE TABLE neighborhoods (id TEXT PRIMARY KEY, name TEXT NOT NULL, city TEXT NOT NULL, city_id TEXT NOT NULL, state TEXT NOT NULL);
 CREATE TABLE benefits (
  gym_id TEXT NOT NULL REFERENCES gyms(id),
  provider TEXT CHECK(provider IN ('wellhub','totalpass')),

@@ -9,5 +9,6 @@ data/*.next.db
 data/boundaries.json
 data/municipalities.json
 .runtime/
+data/neighborhoods.zip
 .env*
 !.env.example

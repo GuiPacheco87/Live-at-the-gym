@@ -2,7 +2,7 @@
 
 Busca de academias brasileiras, com comparação de tendências por dia e hora. Site estático responsivo, API Python, banco SQL SQLite materializado e processamento PySpark/Spark SQL fora da Vercel.
 
-Filtros separados por nome, estado, cidade, bairro e convênio (Wellhub/Gympass, TotalPass ou ambos). Bairro só é preenchido quando consta na fonte OSM; ausência de bairro ou convênio não significa ausência da academia ou recusa do benefício.
+Filtros separados por nome, estado, cidade, bairro e convênio (Wellhub/Gympass, TotalPass ou ambos). A lista de cidades inclui todo o cadastro de municípios da API IBGE, independentemente da existência de academias na base. A lista de bairros reúne os 17.575 polígonos da malha nacional do Censo 2022 e nomes dos cadastros OSM. Não é garantia de todos os bairros novos, informais ou sem delimitação oficial. Bairros ausentes dos endereços são preenchidos quando a coordenada da academia está dentro de um polígono IBGE; nomes OSM existentes são preservados. Ausência de bairro ou convênio não significa ausência da academia ou recusa do benefício. A cobertura de academias é parcial, mesmo quando a cidade aparece no filtro.
 
 Convênios usam `data/benefits.json`, com identificação exata da unidade, fonte oficial e data. O cadastro inicial contém uma confirmação TotalPass da Smart Fit Luxemburgo (Rua Guaicuí, 600). Não há confirmação Wellhub no snapshot inicial. A rotina `pipeline/refresh_benefits.py` revalida páginas já mapeadas; não descobre automaticamente todas as parcerias do Brasil. Páginas alteradas retornam a “não informado”; falhas de rede preservam a última verificação, que expira em 30 dias. Inclusões e negativas precisam de verificação específica da unidade. Os planos não são inferidos.
 
@@ -31,6 +31,7 @@ Abra http://127.0.0.1:4173. O snapshot já acompanha o projeto. A API SQL fica e
 python pipeline/fetch_sources.py
 python pipeline/geography.py
 pip install -r pipeline/requirements.txt
+python pipeline/neighborhoods.py
 python pipeline/spark_job.py
 python pipeline/refresh_benefits.py
 python pipeline/build.py
@@ -55,6 +56,7 @@ O workflow agenda atualização diária às **05:23 de Brasília** (08:23 UTC), 
 - [OpenStreetMap / ODbL](https://www.openstreetmap.org/copyright). Os dados derivados do cadastro devem manter atribuição e as obrigações ODbL aplicáveis; o snapshot pode ser baixado em `/data.json`.
 - [Kaggle: Crowdedness at the Campus Gym](https://www.kaggle.com/datasets/nsrose7224/crowdedness-at-the-campus-gym).
 - [IBGE: malhas geográficas](https://servicodados.ibge.gov.br/api/docs/malhas?versao=3).
+- [IBGE: bairros do Censo 2022](https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/bairros/shp/BR/). Referência histórica declarada, sem promessa de atualização diária dos limites; a rotina reimporta o arquivo da fonte no ambiente CI.
 - [Google: horários de pico](https://support.google.com/business/answer/6263531?hl=pt-BR).
 - [Vercel: Python](https://vercel.com/docs/functions/runtimes/python) e [Deploy Hooks](https://vercel.com/docs/deploy-hooks).
 
