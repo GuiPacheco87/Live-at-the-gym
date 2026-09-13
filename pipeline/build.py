@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from geography import locator
+from catalog import load_catalog
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,7 +33,7 @@ def aggregate_csv(path):
     return profiles, {'observation_start':min(dates),'observation_end':max(dates)}
 
 def main():
-    raw = json.loads((ROOT/'data/osm.json').read_text(encoding='utf-8'))
+    raw = load_catalog()
     find_city = locator()
     neighborhoods = json.loads((ROOT/'data/neighborhoods.json').read_text(encoding='utf-8'))
     municipalities = json.loads((ROOT/'data/municipalities.json').read_text(encoding='utf-8'))
@@ -49,11 +50,12 @@ def main():
             continue
         gym = dict(id=f"{element['type']}/{element['id']}", name=tags['name'], city=tags.get('addr:city',''), state=tags.get('addr:state',''), address=', '.join(filter(None,[tags.get('addr:street'),tags.get('addr:housenumber'),tags.get('addr:suburb')])), latitude=center['lat'], longitude=center['lon'], opening_hours=tags.get('opening_hours',''))
         gym['neighborhood'] = tags.get('addr:suburb', tags.get('addr:neighbourhood',''))
+        gym['sources'] = element['sources']
         city, state = find_city(gym['longitude'], gym['latitude'])
         if city:
             gym['city'],gym['state'] = city,state
         official=neighborhoods['located'].get(gym['id'])
-        gym['neighborhood_source']='OpenStreetMap' if gym['neighborhood'] else ''
+        gym['neighborhood_source']=element.get('neighborhood_source', element['sources'][0]['name']) if gym['neighborhood'] else ''
         if official and not gym['neighborhood']:
             gym['neighborhood']=official['neighborhood']
             gym['neighborhood_source']='IBGE Censo 2022 · localização geográfica'
@@ -76,7 +78,7 @@ def main():
     if spark_file.exists():
         profiles = json.loads(spark_file.read_text(encoding='utf-8'))
     kaggle_meta = json.loads((ROOT/'data/kaggle_meta.json').read_text())
-    meta = dict(built_at=datetime.now(timezone.utc).isoformat(), catalog_updated_at=raw['fetched_at'], model_checked_at=kaggle_meta['fetched_at'], source=kaggle_meta['source'], coverage='Academias mapeadas no OpenStreetMap; cobertura parcial do Brasil.', methodology='Perfil genérico de uma academia universitária do Kaggle, aplicado igualmente a todas as unidades. Não representa medições destas academias, capacidade, número de pessoas ou dados do Google.', **period)
+    meta = dict(built_at=datetime.now(timezone.utc).isoformat(), catalog_updated_at=raw['fetched_at'], catalog_sources=raw['sources'], matched_units=raw['matched_units'], cities_with_gyms=len({(g['state'],g['city']) for g in gyms if g['city']}), model_checked_at=kaggle_meta['fetched_at'], source=kaggle_meta['source'], coverage='OpenStreetMap e diretórios públicos Smart Fit e Bluefit; cobertura parcial do Brasil.', methodology='Perfil genérico de uma academia universitária do Kaggle, aplicado igualmente a todas as unidades. Não representa medições destas academias, capacidade, número de pessoas ou dados do Google.', **period)
     temp = ROOT/'data/gyms.next.db'
     if temp.exists():
         temp.unlink()

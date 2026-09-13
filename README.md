@@ -8,7 +8,7 @@ Convênios usam `data/benefits.json`, com identificação exata da unidade, font
 
 ## O que os dados significam
 
-- Cadastro real do OpenStreetMap, com cobertura parcial. Pode incluir estabelecimentos mal classificados ou desatualizados pela comunidade.
+- Cadastro real do OpenStreetMap e dos diretórios públicos nacionais Smart Fit e Bluefit, com cobertura parcial. Pode incluir estabelecimentos mal classificados ou desatualizados pela comunidade.
 - Cidade e UF preenchidas pela posição em malhas municipais simplificadas do IBGE. Pontos próximos à fronteira podem ter imprecisão; não há endereço inventado.
 - O perfil de movimento vem de **uma academia universitária** no Kaggle. Os registros disponíveis são de 2015–2017. É aplicado igualmente a todas as academias brasileiras como referência exploratória de baixa confiança. Não é um modelo validado para o Brasil, uma medição local, percentual de capacidade nem previsão ao vivo.
 - Média de pessoas por dia e hora local da fonte, dividida pelo maior valor médio da semana, gerando índice relativo 0–100. O fuso original é preservado ao agrupar.
@@ -29,6 +29,8 @@ Abra http://127.0.0.1:4173. O snapshot já acompanha o projeto. A API SQL fica e
 
 ```sh
 python pipeline/fetch_sources.py
+python pipeline/fetch_smartfit.py
+python pipeline/fetch_bluefit.py
 python pipeline/geography.py
 pip install -r pipeline/requirements.txt
 python pipeline/neighborhoods.py
@@ -49,7 +51,7 @@ PySpark requer Java 17 no ambiente de processamento. Para executar apenas Python
 
 O workflow agenda atualização diária às **05:23 de Brasília** (08:23 UTC), com possíveis atrasos do GitHub. Ele consulta fontes, processa com PySpark, valida, grava um novo snapshot e solicita publicação. Falha na coleta ou validação impede substituir os dados publicados. Falha na Vercel fica visível no painel; a aceitação do hook não comprova publicação concluída. Mantenha notificações de falha do GitHub habilitadas e acompanhe os deploys da Vercel. Em repositórios públicos, GitHub pode desativar agendas após inatividade.
 
-**A agenda só fica ativa após configurar repositório, Actions e Vercel.** O código local não agenda tarefas no computador. O site mostra data da consulta e alerta após 48h; consultar novamente o Kaggle não torna recentes observações antigas. Para resultados locais atualizados de movimento, será necessária uma fonte por academia (por exemplo, registros autorizados de entrada ou um provedor com cobertura verificada).
+**A agenda deste repositório está configurada com GitHub Actions e Deploy Hook da Vercel.** O código local não agenda tarefas no computador. O site mostra data da consulta e alerta após 48h; consultar novamente o Kaggle não torna recentes observações antigas. Para resultados locais atualizados de movimento, será necessária uma fonte por academia (por exemplo, registros autorizados de entrada ou um provedor com cobertura verificada).
 
 ## Fontes e licenças
 
@@ -61,3 +63,13 @@ O workflow agenda atualização diária às **05:23 de Brasília** (08:23 UTC), 
 - [Vercel: Python](https://vercel.com/docs/functions/runtimes/python) e [Deploy Hooks](https://vercel.com/docs/deploy-hooks).
 
 Credenciais não são exigidas para os downloads públicos usados nesta primeira coleta. Mudanças de acesso, esquema ou indisponibilidade das fontes exigem manutenção do pipeline.
+
+## Ampliação gratuita do catálogo
+
+A coleta OSM inclui `leisure=fitness_centre`, `amenity=gym`, `club=fitness` e centros esportivos com modalidades fitness, musculação, crossfit ou levantamento de peso. Consultas separadas reduzem o risco de timeout.
+
+O diretório público [Smart Fit](https://www.smartfit.com.br/locations) é percorrido por paginação, com intervalo entre requisições e validação do total informado pela fonte. A API limita a paginação a 1.000 resultados por ordenação; consultas com coordenadas de referência públicas ampliam a união de IDs únicos. Só são guardados dados factuais da unidade e o link oficial, sem imagens ou preços. Cada registro JSON identifica fonte e data. Unidades das redes a até 60 metros de um único cadastro OSM da mesma marca são unidas, preservando o ID OSM; correspondências ambíguas ficam separadas e podem exigir revisão. Essa regra reduz duplicatas, sem garantir eliminá-las.
+
+As fontes de academias são consultadas diariamente no workflow. Importação incompleta interrompe a publicação e preserva o snapshot publicado; a data exibida considera a fonte mais antiga. Não há API paga ou chave necessária. Novas consultas não garantem novas informações na origem. O cadastro oficial pode incluir unidades em pré-venda; confirme abertura no link da unidade. A inclusão no diretório não implica aceitação de Wellhub ou TotalPass.
+
+A [Bluefit](https://www.bluefit.com.br/unidades) também é importada pela API pública usada no site oficial, até o fim da paginação. Endereços, bairros e coordenadas são incorporados com proveniência e a mesma regra conservadora de correspondência com OSM. Academias independentes e demais redes continuam incluídas pelo OpenStreetMap. Os diretórios complementam essa base, não restringem a busca a marcas específicas.

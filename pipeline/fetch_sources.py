@@ -5,6 +5,7 @@ import io
 import zipfile
 import urllib.request
 import urllib.parse
+import time
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -19,10 +20,21 @@ def download(url, body=None):
 
 def main():
     DATA.mkdir(exist_ok=True)
-    query = '[out:json][timeout:180];area["ISO3166-1"="BR"][admin_level=2]->.br;nwr[leisure=fitness_centre][name](area.br);out center tags;'
-    raw = json.loads(download('https://overpass-api.de/api/interpreter', urllib.parse.urlencode({'data':query}).encode()))
-    if raw.get('remark') or not raw.get('elements'):
-        raise RuntimeError('Incomplete OSM response; keeping previous snapshot')
+    elements = {}
+    for selector in ('[leisure=fitness_centre]', '[amenity=gym]',
+                     '[sport~"(^|;)(fitness|bodybuilding|crossfit|weightlifting)(;|$)"][leisure=sports_centre]',
+                     '[club=fitness]'):
+        query = '[out:json][timeout:180];area["ISO3166-1"="BR"][admin_level=2]->.br;nwr' + selector + '[name](area.br);out center tags;'
+        response = json.loads(download('https://overpass-api.de/api/interpreter', urllib.parse.urlencode({'data':query}).encode()))
+        if response.get('remark') or 'elements' not in response:
+            raise RuntimeError('Incomplete OSM response; keeping previous snapshot')
+        for element in response['elements']:
+            elements[(element['type'],element['id'])] = element
+        print(f'OSM {selector}: {len(response["elements"])}', flush=True)
+        time.sleep(10)
+    if not elements:
+        raise RuntimeError('Empty OSM catalog; keeping previous snapshot')
+    raw = {'elements': list(elements.values())}
     raw['fetched_at'] = datetime.now(timezone.utc).isoformat()
     (DATA / 'osm.json').write_text(json.dumps(raw, ensure_ascii=False), encoding='utf-8')
     print('OSM gyms:', len(raw['elements']), flush=True)

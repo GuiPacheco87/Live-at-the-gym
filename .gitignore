@@ -12,3 +12,10 @@ data/municipalities.json
 data/neighborhoods.zip
 .env*
 !.env.example
+data/*.html
+data/smartfit.json
+data/smartfit-page*.json
+data/smartfit-map.json
+data/*.tmp
+data/smartfit-script.js
+data/bluefit-raw.json

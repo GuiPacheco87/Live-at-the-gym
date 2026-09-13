@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import shapefile
 from fetch_sources import download
 from geography import ring_contains
+from catalog import load_catalog
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE='https://geoftp.ibge.gov.br/organizacao_do_territorio/malhas_territoriais/malhas_de_setores_censitarios__divisoes_intramunicipais/censo_2022/bairros/shp/BR/BR_bairros_CD2022.zip'
@@ -14,7 +15,7 @@ def main():
     archive=ROOT/'data/neighborhoods.zip'
     if not archive.exists():
         archive.write_bytes(download(SOURCE))
-    elements=json.loads((ROOT/'data/osm.json').read_text(encoding='utf-8'))['elements']
+    elements=load_catalog()['elements']
     points=[]
     for e in elements:
         c=e.get('center',e)
